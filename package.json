@@ -12,7 +12,7 @@
   "scripts": {
     "test": "jasmine-node --coffee --verbose spec",
     "pretest": "coffee -o lib -c coffee-src",
-    "prepublish": "coffee -o lib -c coffee-src"
+    "prepublish": "coffee -o lib -c coffee-src; grunt uglify"
   },
   "engines": {
     "node": ""
