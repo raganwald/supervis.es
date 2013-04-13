@@ -5,34 +5,35 @@ root = this
 class Monad
   constructor: (methods) ->
     this[name] = body for own name, body of methods
-  lift: (fn) ->
-    (value) -> @bind(fn)(@unit(value))
+    @mReturn or= (value) -> value
+    @fmap or= (fn) -> fn
+    @join or= (mValue) -> mValue
+    @mBind or= (mValue, fn) -> @join(@fmap(fn)(mValue))
+    this[name] = body.bind(this) for own name, body of this
 
-Monad.Identity = new Monad
-  unit: (value) -> value
-  bind: (fn) -> fn
+Monad.Identity = new Monad()
 
 Monad.Maybe = new Monad
-  unit: (value) -> value
-  bind: (fn) ->
-    (boundValue) ->
-      if (boundValue is null or boundValue is undefined)
-        boundValue
+  fmap: (fn) ->
+    (mValue) ->
+      if (mValue is null or mValue is undefined)
+        mValue
       else
-        fn(boundValue)
+        fn(mValue)
         
 Monad.Writer = new Monad
-  unit: (value) -> [value, '']
-  bind: (fn) ->
+  mReturn: (value) -> [value, '']
+  fmap: (fn) ->
     ([value, writtenSoFar]) ->
       [result, newlyWritten] = fn(value)
       [result, writtenSoFar + newlyWritten]
       
 Monad.List = new Monad
-  unit: (value) -> [value]
-  bind: (fn) ->
-    (values) ->
-      values.reduce ((ma, b) -> Monad.List.plus(ma, fn(b))), Monad.List.zero()
+  mReturn: (value) -> [value]
+  join: (mValue) ->
+    mValue.reduce @plus, @zero()
+  fmap: (fn) ->
+    (mValue) -> mValue.map(fn)
   zero: -> []
   plus: (ma, mb) -> ma.concat(mb)
 
@@ -42,9 +43,8 @@ sequence = (args...) ->
   else
     monad = Monad.Identity
     fns = args
-  boundFns = fns.map(monad.bind)
   (value) ->
-    boundFns.reduce ((acc, boundFn) -> boundFn(acc)), monad.unit(value)
+    fns.reduce monad.mBind, monad.mReturn(value)
 
 root.sequence = sequence
 root.Monad = Monad
