@@ -11,7 +11,8 @@
   "main": "lib/supervis.es.js",
   "scripts": {
     "test": "jasmine-node --coffee --verbose spec",
-    "pretest": "coffee -c "
+    "pretest": "coffee -o lib -c coffee-src",
+    "prepublish": "coffee -o lib -c coffee-src"
   },
   "engines": {
     "node": ""
