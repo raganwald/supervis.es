@@ -3,7 +3,8 @@ root = this
 ###########################################
 
 class Monad
-  constructor: ({@unit, @bind}) ->
+  constructor: (methods) ->
+    this[name] = body for own name, body of methods
   lift: (fn) ->
     (value) -> @bind(fn)(@unit(value))
 
@@ -31,7 +32,9 @@ Monad.List = new Monad
   unit: (value) -> [value]
   bind: (fn) ->
     (values) ->
-      values.reduce ((acc, value) -> acc.concat(fn(value))), []
+      values.reduce ((ma, b) -> Monad.List.plus(ma, fn(b))), Monad.List.zero()
+  zero: -> []
+  plus: (ma, mb) -> ma.concat(mb)
 
 sequence = (args...) ->
   if args[0] instanceof Monad
