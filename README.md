@@ -12,7 +12,7 @@ To try it, you'll need node, jasmine-node, CoffeeScript, and their respective de
 
 ### code organization
 
-The key function is `sequence`. In naïve form, `sequence` pipelines a value through a series of unary functions:
+The key function is `sequence`. In naïve form, `sequence` appears to create a pipeline through a series of unary functions, much like functional composition in reverse:
 
     plusOne = (n) -> n + 1
     double = (n) -> n * 2
@@ -20,9 +20,15 @@ The key function is `sequence`. In naïve form, `sequence` pipelines a value thr
     sequence(plusOne, double, double)(1)
       #=> 8
 
-In this library, there is an additional mode. If the first argument to `sequence` is an instance of `Monad`, then `sequence` will use the Monad to wrap and unwrap values along the way.
+If the first argument to `sequence` is an instance of `Monad`, then `sequence` will use the Monad to wrap and unwrap values along the way. Here is the above example using the `Writer` monad:
 
-Actually, this is always true: If the first argument isn't a Monad instance, `sequence` uses the `Identity` monad.
+    plusOne = (n) -> [n + 1, "(#{n}) -> #{n + 1}; "]
+    double = (n) -> [n * 2, "(#{n}) -> #{n * 2}; "]
+    
+    sequence(Monad.Writer, plusOne, double, double)(1)
+      #=> [ 8, '(1) -> 2; (2) -> 4; (4) -> 8; ' ]
+
+If the first argument isn't a Monad instance, `sequence` actually uses the `Identity` monad behind the scenes.
 
 At this time, I've coded up:
 
