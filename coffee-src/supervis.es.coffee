@@ -2,6 +2,11 @@ root = this
 
 ###########################################
 
+fluent = (method) ->
+  ->
+    method.apply(this, arguments)
+    this
+
 class Monad
   constructor: (methods) ->
     this[name] = body for own name, body of methods
@@ -36,6 +41,72 @@ Monad.List = new Monad
     (mValue) -> mValue.map(fn)
   zero: -> []
   plus: (ma, mb) -> ma.concat(mb)
+  
+
+class Promise
+  
+  @schedule: (thunk) ->
+    if process?.nextTick?
+      process.nextTick thunk
+    else if window?.setTimeout?
+      window.setTimeout thunk, 0
+    else if setTimeout?
+      setTimout thunk, 0
+      
+  @immediate = (value) ->
+    new Promise().resolve(value)
+    
+  STATE =
+    unfulfilled:
+      then: (promise, onResolved, onRejected) ->
+      resolve: (promise, value) ->
+        promise.state = STATE.resolved
+        promise.value = value
+        Promise.schedule(-> handler(promise.value)) for handler in promise.onResolveds
+      reject: (promise, error) ->
+        promise.state = STATE.rejected
+        promise.error = error
+        Promise.schedule(-> handler(promise.error)) for handler in promise.onRejecteds
+    resolved:
+      then: (promise, onResolved, onRejected) ->
+        Promise.schedule -> onResolved(promise.value) if onResolved?
+      resolve: (promise, value) ->
+        # ignore
+      reject: (promise, error) ->
+        throw "already resolved, cannot reject"
+    rejected:
+      then: (promise, onResolved, onRejected) ->
+        Promise.schedule -> onRejected(promise.error) if onRejected?
+      resolve: (promise, value) ->
+        throw "already rejected, cannot resolved"
+      reject: (promise, error) ->
+        # ignore
+        
+  constructor: ->
+    @state = STATE.unfulfilled
+    @onResolveds = []
+    @onRejecteds = []
+    
+  then: fluent (onResolved, onRejected) ->
+    @onResolveds.push(onResolved) if onResolved?
+    @onRejecteds.push(onRejected) if onRejected?
+    @state.then(this, onResolved, onRejected)
+    
+  resolve: fluent (value) ->
+    @state.resolve(this, value)
+    
+  reject: fluent (error) ->
+    @state.reject(this, error)
+    
+Monad.Promise = new Monad
+  mReturn: (value) -> Promise.immediate(value)
+  fmap: (fnReturningAPromise) ->
+    (promise) ->
+      p = new Promise()
+      promise.then (value) ->
+        fnReturningAPromise(value)
+          .then (newValue) -> p.resolve(newValue)
+      p
 
 sequence = (args...) ->
   if args[0] instanceof Monad
@@ -48,6 +119,7 @@ sequence = (args...) ->
 
 root.sequence = sequence
 root.Monad = Monad
+root.Promise = Promise
     
 ###########################################
     
