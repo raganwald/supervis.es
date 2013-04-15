@@ -10,16 +10,16 @@ fluent = (method) ->
 class Monad
   constructor: (methods) ->
     this[name] = body for own name, body of methods
-    @mReturn or= (value) -> value
-    @fmap or= (fn) -> fn
+    @of or= (value) -> value
+    @map or= (fn) -> fn
     @join or= (mValue) -> mValue
-    @mBind or= (mValue, fn) -> @join(@fmap(fn)(mValue))
+    @chain or= (mValue, fn) -> @join(@map(fn)(mValue))
     this[name] = body.bind(this) for own name, body of this
 
 Monad.Identity = new Monad()
 
 Monad.Maybe = new Monad
-  fmap: (fn) ->
+  map: (fn) ->
     (mValue) ->
       if (mValue is null or mValue is undefined)
         mValue
@@ -27,20 +27,20 @@ Monad.Maybe = new Monad
         fn(mValue)
         
 Monad.Writer = new Monad
-  mReturn: (value) -> [value, '']
-  fmap: (fn) ->
+  of: (value) -> [value, '']
+  map: (fn) ->
     ([value, writtenSoFar]) ->
       [result, newlyWritten] = fn(value)
       [result, writtenSoFar + newlyWritten]
       
 Monad.List = new Monad
-  mReturn: (value) -> [value]
+  of: (value) -> [value]
   join: (mValue) ->
-    mValue.reduce @plus, @zero()
-  fmap: (fn) ->
+    mValue.reduce @concat, @zero()
+  map: (fn) ->
     (mValue) -> mValue.map(fn)
   zero: -> []
-  plus: (ma, mb) -> ma.concat(mb)
+  concat: (ma, mb) -> ma.concat(mb)
   
 
 class Promise
@@ -101,8 +101,8 @@ class Promise
     @state.reject(this, error)
     
 Monad.Promise = new Monad
-  mReturn: (value) -> Promise.immediate(value)
-  fmap: (fnReturningAPromise) ->
+  of: (value) -> Promise.immediate(value)
+  map: (fnReturningAPromise) ->
     (promiseIn) ->
       p = new Promise()
       promiseIn
@@ -119,7 +119,7 @@ sequence = (args...) ->
     monad = Monad.Identity
     fns = args
   (value) ->
-    fns.reduce monad.mBind, monad.mReturn(value)
+    fns.reduce monad.chain, monad.of(value)
 
 root.sequence = sequence
 root.Monad = Monad
