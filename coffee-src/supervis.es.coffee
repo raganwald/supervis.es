@@ -86,6 +86,8 @@ class Promise
     @state = STATE.unfulfilled
     @onResolveds = []
     @onRejecteds = []
+    @resolver = @resolve.bind(this)
+    @rejecter = @reject.bind(this)
     
   then: fluent (onResolved, onRejected) ->
     @onResolveds.push(onResolved) if onResolved?
@@ -101,11 +103,13 @@ class Promise
 Monad.Promise = new Monad
   mReturn: (value) -> Promise.immediate(value)
   fmap: (fnReturningAPromise) ->
-    (promise) ->
+    (promiseIn) ->
       p = new Promise()
-      promise.then (value) ->
-        fnReturningAPromise(value)
-          .then (newValue) -> p.resolve(newValue)
+      promiseIn
+        .then(
+          ((value) ->
+            fnReturningAPromise(value).then(p.resolver, p.rejecter))
+        , p.rejecter)
       p
 
 sequence = (args...) ->
