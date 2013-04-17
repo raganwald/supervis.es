@@ -1,92 +1,72 @@
-{Promise, sequence, Monad} = require('../lib/supervis.es')
+Promise = require 'promise'
+{sequence, Monad} = require('../lib/supervis.es')
 
-# patch 'schedule'
-
-Promise.schedule = (thunk) -> thunk()
-
-describe "Promises", ->
+describe "sequence", ->
+    
+  double = (value) ->
+    new Promise (resolve, reject) ->
+      resolve(value * 2)
+      
+  success = undefined
+  failure = undefined
+      
+  beforeEach ->
+      
+    success = undefined
+    failure = undefined
   
-  it "should be a thing", ->
-    expect( Promise ).not.toBeUndefined()
-    
-  it "should be fluent", ->
-    p = new Promise()
-    expect( p instanceof Promise ).toBeTruthy()
-    expect( p.then() ).toEqual p
-    expect( p.resolve('foo') ).toEqual p
-    
-    p2 = new Promise()
-      .then(((v) -> success = v), (-> success = 'fail'))
-      .resolve('succeed')
-      
-    expect( p2 instanceof Promise ).toBeTruthy()
-    
-  it "should do something reasonable with success", ->
-    success = undefined
-    p = new Promise()
-      .then(((v) -> success = v), (-> success = 'fail'))
-      .resolve('succeed')
-    expect( success ).toEqual('succeed')
-    
-  it "should do something reasonable with failure", ->
-    success = undefined
-    p = new Promise()
-      .then((-> success = 'succeed'), ((e) -> success = e))
-      .reject('fail')
-    expect( success ).toEqual('fail')
-    
-  it "should retain its value after being resolved", ->
-    
-    success = undefined
-    p = new Promise()
-      .resolve('delayed')
-      .then (v) -> success = v
-    expect( success ).toEqual('delayed')
-    
-  describe "sequence", ->
-    
-    it "should work for a doubling promise", ->
-      
-      double = (value) ->
-        Promise.immediate(value * 2)
-        
-      success = undefined
-      failure = undefined
+  describe "for a doubling promise", ->
+  
+    it "should work asynchronously", (done) ->
       
       sequencedPromise = sequence(Monad.Promise, double)(3)
-        .then(((value) -> success = value), ((error) -> failure = error))
-      
+            
+      sequencedPromise.then ((value) ->
+        success = value
+        done()),
+          ((reason) ->
+            failure = reason
+            done())
+            
+    afterEach ->    
       expect( success ).toEqual 6
       expect( failure ).toBeUndefined()
-    
-    it "should make mine a double double", ->
+  
+  describe "for a double double", ->
+  
+    it "should work asynchronously", (done) ->
       
-      double = (value) ->
-        Promise.immediate(value * 2)
-        
-      success = undefined
-      failure = undefined
-      
-      sequencedPromise = sequence(Monad.Promise, double, double)(1)
-        .then(((value) -> success = value), ((error) -> failure = error))
-      
-      expect( success ).toEqual 4
+      sequencedPromise = sequence(Monad.Promise, double, double)(2)
+            
+      sequencedPromise.then ((value) ->
+        success = value
+        done()),
+          ((reason) ->
+            failure = reason
+            done())
+            
+    afterEach ->    
+      expect( success ).toEqual 8
       expect( failure ).toBeUndefined()
-    
-    it "should fail forward", ->
+  
+  describe "for a double fail double", ->
+  
+    it "should fail forward", (done) ->
       
-      double = (value) ->
-        Promise.immediate(value * 2)
-        
-      fail = (value) ->
-        new Promise().reject('sorry, old chap!')
-        
-      success = undefined
-      failure = undefined
+      failer = (value) ->
+        new Promise (resolve, reject) ->
+          reject 'sorry, old chap'
       
-      sequencedPromise = sequence(Monad.Promise, double, fail, double)(1)
-        .then(((value) -> success = value), ((error) -> failure = error))
-      
+      sequencedPromise = sequence(Monad.Promise, double, failer, double)(2)
+            
+      sequencedPromise.then( ((value) ->
+        success = value
+        done()),
+          ((reason) ->
+            failure = reason
+            done()))
+            
+    afterEach ->    
       expect( success ).toBeUndefined()
-      expect( failure ).toEqual 'sorry, old chap!'
+      expect( failure ).toBe 'sorry, old chap'
       
