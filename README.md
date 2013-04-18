@@ -37,8 +37,9 @@ At this time, I've coded up:
 3. Writer
 4. List
 5. Promise
+6. Callback
 
-The `Promise` monad wraps a ridiculously simple `Promise` implementation. Errors fall through much like the Maybe monad.
+The `Promise` monad wraps a ridiculously simple `Promise` implementation. Errors fall through much like the Maybe monad. `Callback` is an implementation of Haskell's infamous "Continuation" monad: You can sequence asynchronous callback functions without ugly nesting.
 
 ### feedback wanted
 
