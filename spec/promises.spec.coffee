@@ -1,5 +1,5 @@
 Promise = require 'promise'
-{sequence, Monad} = require('../lib/supervis.es')
+{Supervisor, Supervisor: {sequence}} = require('../lib/supervis.es')
 
 describe "sequence", ->
     
@@ -19,7 +19,7 @@ describe "sequence", ->
   
     it "should work asynchronously", (done) ->
       
-      sequencedPromise = sequence(Monad.Promise, double)(3)
+      sequencedPromise = sequence(Supervisor.Promise, double)(3)
             
       sequencedPromise.then ((value) ->
         success = value
@@ -36,7 +36,7 @@ describe "sequence", ->
   
     it "should work asynchronously", (done) ->
       
-      sequencedPromise = sequence(Monad.Promise, double, double)(2)
+      sequencedPromise = sequence(Supervisor.Promise, double, double)(2)
             
       sequencedPromise.then ((value) ->
         success = value
@@ -57,7 +57,7 @@ describe "sequence", ->
         new Promise (resolve, reject) ->
           reject 'sorry, old chap'
       
-      sequencedPromise = sequence(Monad.Promise, double, failer, double)(2)
+      sequencedPromise = sequence(Supervisor.Promise, double, failer, double)(2)
             
       sequencedPromise.then( ((value) ->
         success = value

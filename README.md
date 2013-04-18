@@ -20,15 +20,15 @@ The key function is `sequence`. In naïve form, `sequence` appears to create a p
     sequence(plusOne, double, double)(1)
       #=> 8
 
-If the first argument to `sequence` is an instance of `Monad`, then `sequence` will use the Monad to wrap and unwrap values along the way. Here is the above example using the `Writer` monad:
+If the first argument to `sequence` is an instance of `Supervisor`, then `sequence` will use the Supervisor to wrap and unwrap values along the way. Here is the above example using the `Writer` monad:
 
     plusOne = (n) -> [n + 1, "(#{n}) -> #{n + 1}; "]
     double = (n) -> [n * 2, "(#{n}) -> #{n * 2}; "]
     
-    sequence(Monad.Writer, plusOne, double, double)(1)
+    sequence(Supervisor.Writer, plusOne, double, double)(1)
       #=> [ 8, '(1) -> 2; (2) -> 4; (4) -> 8; ' ]
 
-If the first argument isn't a Monad instance, `sequence` actually uses the `Identity` monad behind the scenes.
+If the first argument isn't a Supervisor instance, `sequence` actually uses the `Identity` monad behind the scenes.
 
 At this time, I've coded up:
 
