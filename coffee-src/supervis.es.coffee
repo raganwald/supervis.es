@@ -18,8 +18,7 @@ class Monad
     this[name] = body for own name, body of methods
     @of or= (value) -> value
     @map or= (fn) -> fn
-    @join or= (mValue) -> mValue
-    @chain or= (mValue, fn) -> @join(@map(fn)(mValue))
+    @chain or= (mValue, fn) -> @map(fn)(mValue)
     this[name] = body.bind(this) for own name, body of this
 
 Monad.Identity = new Monad()
@@ -47,7 +46,8 @@ Monad.List = new Monad
     (mValue) -> mValue.map(fn)
   zero: -> []
   concat: (ma, mb) -> ma.concat(mb)
-    
+  chain: (mValue, fn) -> @join(@map(fn)(mValue))
+
 Monad.Promise = new Monad
   of: (value) -> new Promise( (resolve, reject) -> resolve(value) )
   map: (fnReturningAPromise) ->
@@ -57,19 +57,35 @@ Monad.Promise = new Monad
           ((value) ->
             fnReturningAPromise(value).then(resolvePromiseOut, rejectPromiseOut)),
           rejectPromiseOut)
-
+          
+Monad.Continuation = new Monad
+  of: (value) ->
+    (callback) ->
+      callback(value)
+  map: (fn) ->
+    (value) ->
+      (callback) ->
+        fn(value, callback)
+  chain: (mValue, fn) ->
+    (callback) =>
+      mValue(
+        (value) => @map(fn)(value)(callback)
+      )
+    
+  
 sequence = (args...) ->
   if args[0] instanceof Monad
     [monad, fns...] = args
   else
     monad = Monad.Identity
     fns = args
-  (value) ->
-    fns.reduce monad.chain, monad.of(value)
+  ->
+    fns.reduce monad.chain, monad.of.apply(monad, arguments)
 
 root.sequence = sequence
 root.Monad = Monad
 root.Promise = Promise
+root.Identity = (n) -> n
     
 ###########################################
     
